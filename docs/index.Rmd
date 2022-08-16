@@ -1,0 +1,1729 @@
+---
+title: "BergSoft App:All-In-One Blast Engineering Software"
+output: 
+  flexdashboard::flex_dashboard:
+    vertical_layout: scroll
+runtime: shiny
+---
+
+```{r global, include=FALSE}
+
+
+library(flexdashboard)
+library(tidyverse)
+library(ggplot2)
+library(shiny)
+library(plotly)
+library(waiter)
+library(vroom)
+library(viridis)
+library(DT)
+#library(ggforce)
+library(SciViews)
+library(rmarkdown)
+library(leaflet)
+library(tinytex)
+library(webshot)
+library(webshot2)
+library(reshape2)
+library(kableExtra)
+#webshot::install_phantomjs()
+
+```
+
+
+```{r}
+
+waiting_screen <- tagList(
+  #spin_flower()
+  spin_flower(),
+ 
+  h4("Fragmentation Modeling in Progress.....")
+) 
+
+
+fluidPage(
+   useWaiter(), #Waiter
+  
+  titlePanel("BergSoft App"),
+  
+  tabsetPanel(
+    tabPanel("Models",
+             tabsetPanel(
+               tabPanel("KuzRam",
+                        sidebarLayout(
+                          sidebarPanel(  
+                            
+                        fluidRow(
+                          column(width = 12,
+                                 wellPanel(
+                                   h4("Bench Geometry"),
+                                   
+                                   wellPanel(
+                                    fluidRow( 
+                                  column(6,
+                                            
+                                         numericInput("d", "Hole Diameter[mm]", value = 165, min = 0, max = 350),
+                                         numericInput("S", "Spacing[m]", value = 5.5, min = 1,max = 100)
+                                         
+                                     
+                                   ),
+                                  
+                               column(6,
+                                  
+                                      numericInput("W", "Drilling Deviation[m]",value = 0.15, min = 1,max = 100),
+                                      numericInput("B","Burden[m]",   value = 5, min = 1,max = 100)
+                                      )), 
+                               fluidRow( column(12, 
+                                          radioButtons("TYPE", "Type of Blast Design", c("Square Pattern", "Staggered Pattern"),
+                                                             selected = character(0)  ))),
+                               fluidRow( column(12,
+                                                sliderInput("BH", "Bench Height[m]", value = 6, min = 1,max = 50) ))
+                               
+                               )
+                               
+                               )
+                               
+                          )
+                        ),
+                        
+                        fluidRow(
+                          column(width = 12,
+                                 wellPanel(
+                                   h4("Rock Parameters"),
+                                   wellPanel(
+                                   fluidRow(
+                                   column(6,
+                                         
+                                          numericInput("RMD", "Rock Mass Description",value = 90, min = 0,max = 300),
+                                          numericInput("RDI", "Rock Density Influence", value = 9.750, min = 0,max = 300),
+                                          numericInput("RD",  "Rock Density[Kg/m3]", value = 2390 , min = 0,max = 300)
+                                   ),
+                                   
+                                   column(6,
+                                          
+                                          numericInput("JPS", "Joint Plane Spacing", value = 50, min = 0,max = 300),
+                                          numericInput("JPA", "Joint Plane Angle", value = 40, min = 0,max = 300),
+                                          numericInput("YM", "Young's Modulus[GPa]" , value = 60, min = 0,max = 300),
+                                          
+                                          ) ),
+                                   fluidRow(column(12,sliderInput("UCS", "Uniaxial Compressive Strength[MPa]", value = 43.56, min = 1, max = 100)
+                                                   ))
+                                   
+                                   )    )
+                                 
+                          )
+                          
+                        ),
+                        fluidRow(
+                          column(width = 12,
+                                 wellPanel(
+                                   h4("Explosive Parameters"),
+                                   wellPanel(
+                                    fluidRow(
+                                      column(5,
+                                             numericInput("BCL", "Bottom Charge Length[m]", value = 0, min = 0, max = 300),
+                                             numericInput("CCL", "Column Charge Length[m]" , value = 0, min = 0,max = 300),
+                                            
+                                      ),
+                                      
+                                      column(7,
+                                           
+                                             numericInput("RWS","Relative Weight Strength of The Explosive[%]", value = 83, min = 0,max = 1000),
+                                             numericInput("QE","Quantity of Explosive Per Hole[Kg]",value = 98.8, min = 0,max = 300)
+                                      )
+                                      ),
+                                    fluidRow(
+                                      column(12, 
+                                             sliderInput("CL","Charge Length[m]", value = 3.85, min = 0,max = 50, step = 0.77) )))
+                                   
+                                   )
+                                 
+                          )
+                        ),
+                        fluidRow(
+                          column(width = 12,
+                                 wellPanel(
+                                   h4("Fragmentation Target Size[m]"),
+                                   
+                                  fluidRow(
+                                  
+                                    column(6, numericInput("OPTS","Optimum Size[m]", value = 0.6, min = 0, max = 300  )),
+                                    column(6, numericInput("UNDS","Undersize[m]", value = 0.101, min = 0, max = 300) ),
+                                    
+                                  ),
+                                  fluidRow(
+                                    column(12,sliderInput("OVRS", "Oversize[m]", value = 1, min = 0, max = 10)  )
+                                  ),
+                                  
+                          )
+                        )), 
+               ),
+               
+               mainPanel(
+                 fluidRow(
+                   column(12,
+                          column(6,
+                                 fileInput("cd", "Size Fraction[cm]", placeholder = "Upload Prefered Size Fraction in CSV.", accept = "csv" ),
+                                 actionButton("cp", "Compute", class = "btn-lg btn-success"), 
+                                 
+                                 tableOutput("fr")
+                            
+                          ),
+                          column(6, offset = 0,
+                                 plotlyOutput("ft")
+                                 #width = "600px", height = "450px"
+                                 
+                          ),
+                          dataTableOutput("rt11" ),
+                          dataTableOutput("TGS")
+
+                          
+                          )
+                 ),
+                 fluidRow(
+                   column(width = 12,
+                          wellPanel(style = "background: brown",
+                            h4("Fragmentation Target Prediction"),
+                            
+                            fluidRow(
+                              column(4,
+                                     wellPanel(
+                                       h4("Oversize"),
+                                     gaugeOutput("gaugeOV"  ) )),
+                              
+                              column(4,
+                                     wellPanel(
+                                       h4("Optimum"),
+                                     
+                                     gaugeOutput("gaugeOP" ))),
+                              
+                              column(4,
+                                     wellPanel(
+                                       h4("Undersize"),
+                                     gaugeOutput("gaugeUN") ))
+                            ),
+                            
+
+                            )
+                          
+                         
+                   )),),
+                 
+                 
+                 
+               )),
+               tabPanel("Modified KuzRam",
+                        sidebarLayout(
+                          sidebarPanel(  
+                            
+                            fluidRow(
+                              column(width = 12,
+                                     wellPanel(
+                                       h4("Bench Geometry"),
+                                       
+                                       wellPanel(
+                                         fluidRow( 
+                                           column(6,
+                                                  
+                                                  numericInput("d1", "Hole Diameter[mm]", value = 165, min = 0, max = 350),
+                                                  numericInput("S1", "Spacing[m]", value = 5.5, min = 1,max = 100)
+                                                  
+                                                  
+                                           ),
+                                           
+                                           column(6,
+                                                  
+                                                  numericInput("W1", "Drilling Deviation[m]",value = 0.15, min = 1,max = 100),
+                                                  numericInput("B1","Burden[m]",   value = 5, min = 1,max = 100)
+                                           )), 
+                                         fluidRow( column(12, 
+                                                          radioButtons("TYPE1", "Type of Blast Design", c("Square Pattern", "Staggered Pattern"),
+                                                                       selected = character(0)  ))),
+                                         fluidRow( column(12,
+                                                          sliderInput("BH1", "Bench Height[m]", value = 6, min = 1,max = 50) ))
+                                         
+                                       )
+                                       
+                                     )
+                                     
+                              )
+                            ),
+                            
+                            fluidRow(
+                              column(width = 12,
+                                     wellPanel(
+                                       h4("Rock Parameters"),
+                                       wellPanel(
+                                         fluidRow(
+                                           column(6,
+                                                  
+                                                  numericInput("RMD1", "Rock Mass Description",value = 90, min = 0,max = 300),
+                                                  numericInput("RDI1", "Rock Density Influence", value = 9.750, min = 0,max = 300),
+                                                  numericInput("RD1",  "Rock Density[Kg/m3]", value = 2390 , min = 0,max = 300)
+                                           ),
+                                           
+                                           column(6,
+                                                  
+                                                  numericInput("JPS1", "Joint Plane Spacing", value = 50, min = 0,max = 300),
+                                                  numericInput("JPA1", "Joint Plane Angle", value = 40, min = 0,max = 300),
+                                                  numericInput("YM1", "Young's Modulus[GPa]" , value = 60, min = 0,max = 300),
+                                                  
+                                           ) ),
+                                         fluidRow(column(12,sliderInput("UCS1", "Uniaxial Compressive Strength[MPa]", value = 43.56, min = 1, max = 100)
+                                         ))
+                                         
+                                       )    )
+                                     
+                              )
+                              
+                            ),
+                            fluidRow(
+                              column(width = 12,
+                                     wellPanel(
+                                       h4("Explosive Parameters"),
+                                       wellPanel(
+                                         fluidRow(
+                                           column(5,
+                                                  numericInput("BCL1", "Bottom Charge Length[m]", value = 0, min = 0, max = 300),
+                                                  numericInput("CCL1", "Column Charge Length[m]" , value = 0, min = 0,max = 300),
+                                                  
+                                           ),
+                                           
+                                           column(7,
+                                                  
+                                                  numericInput("RWS1","Relative Weight Strength of The Explosive[%]", value = 83, min = 0,max = 1000),
+                                                  numericInput("QE1","Quantity of Explosive Per Hole[Kg]",value = 98.8, min = 0,max = 300)
+                                           )
+                                         ),
+                                         fluidRow(
+                                           column(12, 
+                                                  sliderInput("CL1","Charge Length[m]", value = 3.85, min = 0,max = 50, step = 0.77) )))
+                                       
+                                     )
+                                     
+                              )
+                            ),
+                            fluidRow(
+                              column(width = 12,
+                                     wellPanel(
+                                       h4("Fragmentation Target Size[m]"),
+                                       
+                                       fluidRow(
+                                         
+                                         column(6, numericInput("OPTS1","Optimum Size[m]", value = 0.6, min = 0, max = 300  )),
+                                         column(6, numericInput("UNDS1","Undersize[m]", value = 0.101, min = 0, max = 300) ),
+                                         
+                                       ),
+                                       fluidRow(
+                                         column(12,sliderInput("OVRS1", "Oversize[m]", value = 1, min = 0, max = 10)  )
+                                       ),
+                                       
+                                     )
+                              )), 
+                          ),
+                          
+                          mainPanel(
+                            fluidRow(
+                              column(12,
+                                     column(6,
+                                            fileInput("cd1", "Size Fraction[cm]", placeholder = "Upload Prefered Size Fraction in CSV.", accept = "csv" ),
+                                            actionButton("cpt", "Compute", class = "btn-lg btn-success"), 
+                                            
+                                            tableOutput("fr1")
+                                            
+                                     ),
+                                     column(6, offset = 0,
+                                            plotlyOutput("ft1")
+                                            #width = "600px", height = "450px"
+                                            
+                                     ),
+                                     dataTableOutput("rt111" ),
+                                     dataTableOutput("TGS1")
+                                     
+                                     
+                              )
+                            ),
+                            fluidRow(
+                              column(width = 12,
+                                     wellPanel(style = "background: green",
+                                               h4("Fragmentation Target Prediction"),
+                                               
+                                               fluidRow(
+                                                 column(4,
+                                                        wellPanel(
+                                                          h4("Oversize"),
+                                                          gaugeOutput("gaugeOV1"  ) )),
+                                                 
+                                                 column(4,
+                                                        wellPanel(
+                                                          h4("Optimum"),
+                                                          
+                                                          gaugeOutput("gaugeOP1" ))),
+                                                 
+                                                 column(4,
+                                                        wellPanel(
+                                                          h4("Undersize"),
+                                                          gaugeOutput("gaugeUN1") ))
+                                               ),
+                                               
+                                               
+                                     )
+                                     
+                                     
+                              )),),
+                          
+                          
+                          
+                        )),
+               
+               tabPanel("KCO",
+                        sidebarLayout(
+                          sidebarPanel(  
+                            
+                            fluidRow(
+                              column(width = 12,
+                                     wellPanel(
+                                       h4("Bench Geometry"),
+                                       
+                                       wellPanel(style = "background: ash",
+                                         fluidRow( 
+                                           column(6,
+                                                  
+                                                  numericInput("d2", "Hole Diameter[mm]", value = 165, min = 0, max = 350),
+                                                  numericInput("S2", "Spacing[m]", value = 5.5, min = 1,max = 100)
+                                                  
+                                                  
+                                           ),
+                                           
+                                           column(6,
+                                                  
+                                                  numericInput("W2", "Drilling Deviation[m]",value = 0.15, min = 1,max = 100),
+                                                  numericInput("B2","Burden[m]",   value = 5, min = 1,max = 100)
+                                           )), 
+                                         fluidRow( column(12, 
+                                                          numericInput("insitu", "In-Situ Block Size[cm]", value = 500, min = 1, max = 10000))),
+                                                                     
+                                         fluidRow( column(12, 
+                                                          radioButtons("TYPE2", "Type of Blast Design", c("Square Pattern", "Staggered Pattern"),
+                                                                       selected = character(0)  ))),
+                                         fluidRow( column(12,
+                                                          sliderInput("BH2", "Bench Height[m]", value = 6, min = 1,max = 50) ))
+                                         
+                                       )
+                                       
+                                     )
+                                     
+                              )
+                            ),
+                            
+                            fluidRow(
+                              column(width = 12,
+                                     wellPanel(
+                                       h4("Rock Parameters"),
+                                       wellPanel(
+                                         fluidRow(
+                                           column(6,
+                                                  
+                                                  numericInput("RMD2", "Rock Mass Description",value = 90, min = 0,max = 300),
+                                                  numericInput("RDI2", "Rock Density Influence", value = 9.750, min = 0,max = 300),
+                                                  numericInput("RD2",  "Rock Density[Kg/m3]", value = 2390 , min = 0,max = 300)
+                                           ),
+                                           
+                                           column(6,
+                                                  
+                                                  numericInput("JPS2", "Joint Plane Spacing", value = 50, min = 0,max = 300),
+                                                  numericInput("JPA2", "Joint Plane Angle", value = 40, min = 0,max = 300),
+                                                  numericInput("YM2", "Young's Modulus[GPa]" , value = 60, min = 0,max = 300),
+                                                  
+                                           ) ),
+                                         fluidRow(column(12,sliderInput("UCS2", "Uniaxial Compressive Strength[MPa]", value = 43.56, min = 1, max = 100)
+                                         ))
+                                         
+                                       )    )
+                                     
+                              )
+                              
+                            ),
+                            fluidRow(
+                              column(width = 12,
+                                     wellPanel(
+                                       h4("Explosive Parameters"),
+                                       wellPanel(
+                                         fluidRow(
+                                           column(5,
+                                                  numericInput("BCL2", "Bottom Charge Length[m]", value = 0, min = 0, max = 300),
+                                                  numericInput("CCL2", "Column Charge Length[m]" , value = 0, min = 0,max = 300),
+                                                  
+                                           ),
+                                           
+                                           column(7,
+                                                  
+                                                  numericInput("RWS2","Relative Weight Strength of The Explosive[%]", value = 83, min = 0,max = 1000),
+                                                  numericInput("QE2","Quantity of Explosive Per Hole[Kg]",value = 98.8, min = 0,max = 300)
+                                           )
+                                         ),
+                                         fluidRow(
+                                           column(12, 
+                                                  sliderInput("CL2","Charge Length[m]", value = 3.85, min = 0,max = 50, step = 0.77) )))
+                                       
+                                     )
+                                     
+                              )
+                            ),
+                            fluidRow(
+                              column(width = 12,
+                                     wellPanel(
+                                       h4("Fragmentation Target Size[m]"),
+                                       
+                                       fluidRow(
+                                         
+                                         column(6, numericInput("OPTS2","Optimum Size[m]", value = 0.6, min = 0, max = 300  )),
+                                         column(6, numericInput("UNDS2","Undersize[m]", value = 0.101, min = 0, max = 300) ),
+                                         
+                                       ),
+                                       fluidRow(
+                                         column(12,sliderInput("OVRS2", "Oversize[m]", value = 1, min = 0, max = 10)  )
+                                       ),
+                                       
+                                     )
+                              )), 
+                          ),
+                          
+                          mainPanel(
+                            fluidRow(
+                              column(12,
+                                     column(6,
+                                            fileInput("cd2", "Size Fraction[cm]", placeholder = "Upload Prefered Size Fraction in CSV.", accept = "csv" ),
+                                            actionButton("cp2", "Compute", class = "btn-lg btn-success"), 
+                                            
+                                            tableOutput("fr2")
+                                            
+                                     ),
+                                     column(6, offset = 0,
+                                            plotlyOutput("ft2")
+                                            #width = "600px", height = "450px"
+                                            
+                                     ),
+                                     dataTableOutput("rt2" ),
+                                     dataTableOutput("TGS2")
+                                     
+                                     
+                              )
+                            ),
+                            fluidRow(
+                              column(width = 12,
+                                     wellPanel(style = "background: green",
+                                               h4("Fragmentation Target Prediction"),
+                                               
+                                               fluidRow(
+                                                 column(4,
+                                                        wellPanel(
+                                                          h4("Oversize"),
+                                                          gaugeOutput("gaugeOV2"  ) )),
+                                                 
+                                                 column(4,
+                                                        wellPanel(
+                                                          h4("Optimum"),
+                                                          
+                                                          gaugeOutput("gaugeOP2" ))),
+                                                 
+                                                 column(4,
+                                                        wellPanel(
+                                                          h4("Undersize"),
+                                                          gaugeOutput("gaugeUN2") ))
+                                               ),
+                                               
+                                               
+                                     )
+                                     
+                                     
+                              )),),
+                          
+                          
+                          
+                        )),
+               
+               tabPanel("Machine Learning",
+                        fluidRow(
+                          column(width = 6,
+                                 plotOutput("ploOt", height = "350px"),
+                                 
+                          ) 
+                        )
+               )
+               
+               
+             ) #Close inner tabsetPanel
+    ),
+    tabPanel("Blast Insight",
+             
+             sidebarLayout( 
+               
+               sidebarPanel(width = 2.5,
+                 fluidRow(
+                   column( 12,
+                   column(width = 4,
+                          textInput("NM", "Name Of Mine/Blast Engineer", placeholder = "Type your name here"  ),
+                          textInput("BLOC", "Blast Location", placeholder = "Type your name here"  ),
+                          numericInput("NUMBEROFHOLES", label = "Number of Holes", value = 100, min = 1, max = Inf   ),
+                          textInput("PROVIDER", label = "Explosives and Accessories Provider", placeholder = "Enter Company Name Here")
+                         
+                          ),
+                   
+                   column( width = 4,
+                           numericInput("LONG", "Longitude[Decimal Degrees]", value = -67.315303, min = -Inf , max = Inf ),
+                           numericInput("LAT", "Latitude [Decimal Degrees]", value = 52.755561, min = -Inf , max = Inf ),
+                           numericInput("COSTEXP", "Cost of Explosive Per Hole[$]", value = 200, min = -Inf, max = Inf ),
+                           numericInput("COSTDRILL", "Cost Per Drill Hole[$]", value = 1000, min = -Inf, max = Inf )
+                           
+                           ),
+                          
+                          
+                            column(width = 4,
+                                   
+                                   #radioButtons('format', 'Document format','PDF'),
+                                   textInput("SHIFT", label = "Type of Shift", placeholder = "Enter Your Shift Here"),
+                                  
+                                   downloadButton('downloadReport'),
+                                   actionButton("recalc", "Mine Blast Location Map")
+                                   
+                            ))
+                 )
+                 
+                            
+                          
+                 
+               )
+               ,
+               
+               mainPanel(width = 12,
+                 fluidRow(
+                   column(12,
+                   column(width = 4),leafletOutput("map"),
+                   
+                  column(6, plotlyOutput("KMI")),
+                    column(6,plotlyOutput("MKMI") ),
+                      column(6,  plotlyOutput("KCOI"))
+                      
+                 )) ,
+                 fluidRow(
+                   column(12,
+                          dataTableOutput("tables3"),
+                          dataTableOutput("FRAG"),
+                          plotlyOutput("plots3")
+                         
+                          )),
+                 
+                 fluidRow(
+                   column(width = 12,  
+                 fluidRow(
+                   column(width = 12,
+                          wellPanel(style = "background: green",
+                                    h4("KCO Fragmentation Target Prediction Insight"),
+                                      column(4,
+                                             wellPanel(
+                                               h4("Oversize"),
+                                               gaugeOutput("gaugeOVI"  ) )),
+                                      
+                                      column(4,
+                                             wellPanel(
+                                               h4("Optimum"),
+                                               
+                                               gaugeOutput("gaugeOPI" ))),
+                                      
+                                      column(4,
+                                             wellPanel(
+                                               h4("Undersize"),
+                                               gaugeOutput("gaugeUNI") ))
+                                    )
+     
+                          )
+   
+                   ),
+                 fluidRow(
+                   column(width = 12,
+                          wellPanel(style = "background: green",
+                                    h4("Modified KuzRam Fragmentation Target Prediction Insight"),
+                                    
+                                      column(4,
+                                             wellPanel(
+                                               h4("Oversize"),
+                                               gaugeOutput("gaugeOVII"  ) )),
+                                      
+                                      column(4,
+                                             wellPanel(
+                                               h4("Optimum"),
+                                               
+                                               gaugeOutput("gaugeOPII" ))),
+                                      
+                                      column(4,
+                                             wellPanel(
+                                               h4("Undersize"),
+                                               gaugeOutput("gaugeUNII") ))
+                                    
+                                    
+                                    
+                          )
+                          
+                          
+                   )
+                 ),
+                 fluidRow(
+                  
+                   column(width = 12,
+                          wellPanel(style = "background: green",
+                                    h4("KuzRam Fragmentation Target Prediction Insight"),
+                                    
+                                    
+                                      column(4,
+                                             wellPanel(
+                                               h4("Oversize"),
+                                               gaugeOutput("gaugeOVIII"  ) )),
+                                      
+                                      column(4,
+                                             wellPanel(
+                                               h4("Optimum"),
+                                               
+                                               gaugeOutput("gaugeOPIII" ))),
+                                      
+                                      column(4,
+                                             wellPanel(
+                                               h4("Undersize"),
+                                               gaugeOutput("gaugeUNIII") ))
+                                  
+                                    
+                                    
+                          )
+                          
+                          
+                   )
+                 ),
+                 fluidRow(column(12,
+                                 dataTableOutput("PARA"))),
+                 
+                 fluidRow(column(12,
+                                 textAreaInput("COMMENT", label = "Comments", placeholder = 
+                                 "Anything Written Here Shall Be Included In The Final Report", 
+                                  height = "500px",  width = "1000px")))
+                
+                 ))
+                 
+                 
+               )
+             )#close sidebar panel
+             
+    ),
+    tabPanel("Computations",
+             fluidRow(
+               column(width = 12,
+                      h1("HI!")
+               )
+             )
+    )
+  )     #Close outer tabsetPanel
+) #Close FluidPage
+
+
+
+ #### KuzRam Server
+   
+                 vb <-  reactive({input$B*input$S*input$BH})
+  
+                 HF <-  reactive({
+                        if(input$YM < 50){
+                        input$YM/3 
+                        }else{
+                        input$UCS/5
+                         }})
+                 
+                RMD <-  reactive({input$JPS+input$JPA})
+                RDI <- reactive({0.025*input$RD-50})
+                RF <- reactive({0.06*(RMD()+RDI()+HF())} )
+                PF <- reactive({input$QE/vb()})
+  
+                KZRM_50 <-  reactive({
+                              RF()*(PF()^-0.8)*(input$QE^(1/6))*((115/input$RWS)^(19/30))
+                        
+                                   })
+                
+    KZRM_n <- eventReactive(input$cp,{
+              if(input$TYPE == "Square Pattern" && input$BCL==0){
+      
+              1*(( 2.2  - (14*(input$B/input$d)))*(sqrt((1/2)+(input$S/(2*input$B))))*
+              (1-(input$W/input$B))*(abs((input$CL)/input$CL)+0.1)^(0.1)*(input$CL/input$BH))    
+      
+              }else if( input$TYPE == "Square Pattern" && input$BCL > 0){
+      
+      
+              1*(( 2.2  - (14*(input$B/input$d)))*(sqrt((1/2)+(input$S/(2*input$B))))*
+              (1-(input$W/input$B))*(abs((input$BCL-input$CCL)/input$CL)+0.1)^(0.1)*(input$CL/input$BH)) 
+      
+      
+              }else if(input$TYPE == "Staggered Pattern" && input$BCL == 0){
+      
+              1.1*(( 2.2  - (14*(input$B/input$d)))*(sqrt((1/2)+(input$S/(2*input$B))))*
+              (1-(input$W/input$B))*(abs((input$CL)/input$CL)+0.1)^(0.1)*(input$CL/input$BH))
+      
+              }else {
+      
+              1.1*(( 2.2  - (14*(input$B/input$d)))*(sqrt((1/2)+(input$S/(2*input$B))))*
+             (1-(input$W/input$B))*(abs((input$BCL-input$CCL)/input$CL)+0.1)^(0.1)*(input$CL/input$BH))
+      
+             } })
+  
+  
+   datain <- reactive({
+    
+                  req(input$cd)
+                  ext <- tools::file_ext(input$cd$name)
+                 switch(ext,
+                  csv = vroom::vroom(input$cd$datapath, delim = ","),
+                 validate("Invalid file; Please upload your Size Fraction in  .csv format")
+                   )
+                  })
+  
+    
+   datain_loop <- reactive({
+                        v_s1 <- numeric(1:length( datain()))
+                        for (i in seq_along(datain())){
+                        v_s1[i] <- 100*(1- exp(-0.693*((datain()[i]/KZRM_50())^KZRM_n())))
+                         }
+                        v_s1
+                         })
+  
+   dat4plot <- reactive({ 
+                      data.frame(datain(), datain_loop()) 
+                   
+                      })
+  
+   
+   output$rt11 <- DT::renderDataTable({  
+                     DT::datatable(dat4plot(), colnames = c('Size Fraction[cm]' = 2, 'Percentage Passing[%]' = 3 )) 
+                    
+                                     })
+   
+   datTag <- reactive({
+                    KZRM_X_C  <- ((KZRM_50()/100))/((0.693)^(1/KZRM_n()) )
+                    P_over_size <- 100*(exp(-((input$OVRS / KZRM_X_C)^(KZRM_n()))))
+                    P_Under_size <- 100*(1-exp(-((input$UNDS / KZRM_X_C)^(KZRM_n()))))
+                    P_Range <-  100-P_over_size - P_Under_size
+                    data.frame(P_over_size,P_Under_size, P_Range,KZRM_50(), KZRM_n(), PF(), RF(),HF() )
+    
+                    })
+  
+  output$TGS <-DT::renderDataTable(
+                       DT::datatable( datTag() ,
+                        colnames = c('Percentage Oversize [%]' = 2, 
+                                     'Percentage UnderSize [%]' = 3,
+                                     'Percentage Optimum [%]' = 4,
+                                     'Mean Fragment Size [cm]' = 5,
+                                     'Uniformity index' = 6,
+                                     'Powder Factor' = 7,
+                                     'Rock Factor' = 8,
+                                     'Hardness Factor' = 9
+                                     
+                                     ))) 
+  
+  
+  KZRM_SINGLE <- function(){
+                             dat4plot1 <-  dat4plot()
+                             colnames(dat4plot1) <- c("Size", "Percentage.Passing")
+    
+                             ggplotly(ggplot(data = dat4plot1, aes(x = Size, y = Percentage.Passing))+ 
+                             geom_line(colour = "red")+geom_point(colour = "red")+ 
+                             labs(x = "Size Fraction[cm]",y = "Percentage Passing[%]" ) 
+                            )
+    
+                            }
+  
+
+   
+    output$ft <- renderPlotly({ 
+                    KZRM_SINGLE()
+                          
+                            })
+    
+    
+    
+  
+    KZRM_X_C  <-    reactive(((KZRM_50()/100))/((0.693)^(1/KZRM_n()) ))
+    P_over_size <-  reactive(100*(exp(-((input$OVRS / KZRM_X_C())^(KZRM_n())))))
+    P_Under_size <- reactive(100*(1-exp(-((input$UNDS / KZRM_X_C())^(KZRM_n())))))
+    
+    P_Range <-      reactive(100-P_over_size() - P_Under_size())
+    
+    
+    KZRM_gaugeOV <- function(){
+             gauge( round(P_over_size(),1), 
+             min = 0, 
+             max = 10, 
+             symbol = '%',
+             sectors = gaugeSectors(success = c(0, 5), 
+                                    warning = c(0, 10),
+                                    danger = c(9, 10)))
+      
+                  
+    }
+    
+    
+  output$gaugeOV <- renderGauge({ 
+    
+                         KZRM_gaugeOV()
+    
+                        })
+    
+  
+  KZRM_gaugeOP <-  function(){
+          gauge(round(P_Range(),1), 
+          min = 70, 
+          max = 100, 
+          symbol = '%',
+          sectors = gaugeSectors(success = c(80, 100), 
+                                 warning = c(70, 79),
+                                 danger = c(30, 50)))
+    
+  }
+  
+    
+  output$gaugeOP <- renderGauge({ 
+    
+                      KZRM_gaugeOP()
+    
+                      })
+  
+  
+  KZRM_gaugeUN <- function(){
+           gauge( round(P_Under_size(),1), 
+           min = 0, 
+           max = 15, 
+           symbol = '%',
+           sectors = gaugeSectors(success = c(9, 10), 
+                                  warning = c(8, 9),
+                                  danger = c(10, 15)))
+    
+  }
+  
+  
+  output$gaugeUN <- renderGauge({ 
+                    
+    KZRM_gaugeUN()
+    
+                    })
+
+
+  
+  
+  ####Modified Server
+  
+  Vb1 <-  reactive({ 
+    
+           input$B1*input$S1*input$BH1
+    
+            })
+  
+  HF1 <-  reactive({
+    if(input$YM1 < 50){
+      input$YM1 / 3 
+    }else{
+      input$UCS1 / 5
+    }})
+  
+  RMD1 <-  reactive({input$JPS1+input$JPA1})
+  
+  RDI1 <- reactive({0.025*input$RD1 - 50})
+  
+  RF1 <- reactive({0.06*(RMD1()+RDI1()+HF1())} )
+  
+  PF1 <- reactive({input$QE1 /  Vb1()})
+  
+  B_I <- reactive({ 
+               0.5*(RMD1() + input$JPS1 + input$JPA1 + RDI1()+ HF1())
+               })
+ 
+  
+  KZRM_n1 <- eventReactive(input$cpt,{
+    
+            if(input$TYPE1 == "Square Pattern" && input$BCL1 == 0){
+      
+      1*(( 2.2  - (14*(input$B1/input$d1)))*(sqrt((1/2)+(input$S1/(2*input$B1))))*
+           (1-(input$W1/input$B1))*(abs((input$CL1)/input$CL1)+0.1)^(0.1)*(input$CL1/input$BH1))    
+      
+    }else if( input$TYPE1 == "Square Pattern" && input$BCL1 > 0){
+      
+      
+      1*(( 2.2  - (14*(input$B1/input$d1)))*(sqrt((1/2)+(input$S1 / (2*input$B1))))*
+           (1-(input$W1/input$B1))*(abs((input$BCL1-input$CCL1)/input$CL1)+0.1)^(0.1)*(input$CL1/input$BH1)) 
+      
+      
+    }else if(input$TYPE1 == "Staggered Pattern" && input$BCL1 == 0){
+      
+      1.1*(( 2.2  - (14*(input$B1 / input$d1)))*(sqrt((1/2)+(input$S1 / (2*input$B1))))*
+             (1-(input$W1/input$B1))*(abs((input$CL1)/input$CL1)+0.1)^(0.1)*(input$CL1/input$BH1))
+      
+    }else {
+      
+      1.1*(( 2.2  - (14*(input$B1/input$d1)))*(sqrt((1/2)+(input$S1/(2*input$B1))))*
+             (1-(input$W1/input$B1))*(abs((input$BCL1-input$CCL1)/input$CL1)+0.1)^(0.1)*(input$CL1/input$BH1))
+      
+    } })
+  
+  
+  M_KZRM_n <- reactive({ 1.88*KZRM_n1() * B_I()^(-0.12)  }) 
+    
+  
+  M_KZRM_50 <-  reactive({
+    
+                0.073*B_I()*(((Vb1()/input$QE1)^(0.8))*(input$QE1^(1/6))*((input$RWS1/115)^(-19/30)))
+    
+              
+    
+               })
+  
+  M_datain <- reactive({
+    
+          req(input$cd1)
+          ext <- tools::file_ext(input$cd1$name)
+    switch(ext,
+           csv = vroom::vroom(input$cd1$datapath, delim = ","),
+           validate("Invalid file; Please upload your Size Fraction in  .csv format")
+           )
+          })
+  
+  
+  M_datain_loop <- reactive({
+                   v_s2 <- numeric(1:length( M_datain()))
+                   for (j1 in seq_along(M_datain())){
+                   v_s2[j1] <- 100*(1- exp(-0.693*((M_datain()[j1]/M_KZRM_50())^M_KZRM_n())))
+                         }
+                   v_s2
+                   })
+  
+  
+  M_dat4plot <- reactive({ 
+                data.frame(M_datain(), M_datain_loop()) 
+    
+                  })
+  
+  
+  output$rt111 <- DT::renderDataTable({  
+                 DT::datatable(M_dat4plot(), colnames = c('Size Fraction[cm]' = 2,
+                                                        'Percentage Passing[%]' = 3 )) 
+    
+                })
+  
+  M_datTag <- reactive({
+              M_KZRM_X_C  <- ((M_KZRM_50()/100))/((0.693)^(1/M_KZRM_n()) )
+              M_P_over_size <- 100*(exp(-((input$OVRS1 / M_KZRM_X_C)^(M_KZRM_n()))))
+              M_P_Under_size <- 100*(1-exp(-((input$UNDS1 / M_KZRM_X_C)^(M_KZRM_n()))))
+              M_P_Range <-  100 - M_P_over_size - M_P_Under_size
+              
+              data.frame(M_P_over_size , M_P_Under_size, M_P_Range, M_KZRM_50(), M_KZRM_n(), PF1(), RF1(), HF1(), B_I() )
+    
+                  })
+  
+  output$TGS1 <-DT::renderDataTable(
+                DT::datatable( M_datTag() ,
+                   colnames = c('Percentage Oversize [%]' = 2, 
+                                'Percentage UnderSize [%]' = 3,
+                                'Percentage Optimum [%]' = 4,
+                                'Mean Fragment Size [cm]' = 5,
+                                'Uniformity index' = 6,
+                                'Powder Factor' = 7,
+                                'Rock Factor' = 8,
+                                'Hardness Factor' = 9,
+                                'Blastability Index' = 10
+                                
+                   ))) 
+  
+  
+  MKZRM_SINGLE <-  function(){
+                   M1_dat4plot <- M_dat4plot()
+                   colnames( M1_dat4plot ) <- c("Size", "Percentage.Passing")
+    
+                   ggplotly( ggplot(data = M1_dat4plot, aes(x = Size,y = Percentage.Passing) )+
+                   geom_line(colour = "blue" )+geom_point(colour = "blue" )+ 
+                   labs(x = "Size Fraction[cm]",y = "Percentage Passing[%]" ) 
+                    )
+    
+                    }
+  
+  
+  
+  output$ft1 <- renderPlotly({ 
+    
+                          MKZRM_SINGLE()
+    
+                          })
+  
+  
+  
+  M_KZRM_X_C  <-    reactive(((M_KZRM_50()/100))/((0.693)^(1/M_KZRM_n()) ))
+  M_P_over_size <-  reactive(100*(exp(-((input$OVRS1 / M_KZRM_X_C())^(M_KZRM_n())))))
+  M_P_Under_size <- reactive(100*(1-exp(-((input$UNDS1 / M_KZRM_X_C())^(M_KZRM_n())))))
+  
+  M_P_Range <-      reactive(100 - M_P_over_size() - M_P_Under_size())
+  
+  
+  
+  MKZRM_gaugeOV1 <- function(){
+                    gauge( round(M_P_over_size(),1), 
+                    min = 0, 
+                    max = 10, 
+                    symbol = '%',
+                    sectors = gaugeSectors(success = c(0, 5), 
+                                  warning = c(0, 10),
+                                  danger = c(9, 10)))
+    
+                         }
+  
+  
+  output$gaugeOV1 <- renderGauge({ 
+                      MKZRM_gaugeOV1() 
+    
+                               })
+  
+  
+  
+  MKZRM_gaugeOP1 <- function(){
+    
+          gauge(round(M_P_Range(),1), 
+          min = 70, 
+          max = 100, 
+          symbol = '%',
+          sectors = gaugeSectors(success = c(80, 100), 
+                                 warning = c(70, 79),
+                                 danger = c(30, 50)))
+    
+                     }
+  
+  
+  
+  output$gaugeOP1 <- renderGauge({ 
+                     MKZRM_gaugeOP1()
+    
+                             })
+  
+  
+  
+  MKZRM_gaugeUN1 <-  function(){
+    
+           gauge( round(M_P_Under_size(),1), 
+           min = 0, 
+           max = 15, 
+           symbol = '%',
+           sectors = gaugeSectors(success = c(9, 10), 
+                                  warning = c(8, 9),
+                                  danger = c(10, 15)))
+    
+                            }
+  
+  
+  output$gaugeUN1 <- renderGauge({ 
+                    
+                     MKZRM_gaugeUN1()
+    
+                          })
+  
+  
+  
+  
+  ####KCO Server
+  
+  vb2 <-  reactive({input$B*input$S*input$BH})
+  
+  HF2 <-  reactive({
+    if(input$YM2 < 50){
+      input$YM2/3 
+    }else{
+      input$UCS2/5
+    }})
+  
+  RMD2 <-  reactive({input$JPS2+input$JPA2})
+  RDI2 <- reactive({0.025*input$RD2-50})
+  RF2 <- reactive({0.06*(RMD2()+RDI2()+HF2())} )
+  PF2 <- reactive({input$QE2/vb2()})
+  
+  K_KZRM_50 <-  reactive({
+                RF2()*(PF2()^-0.8)*(input$QE2^(1/6))*((115/input$RWS2)^(19/30))
+    
+              })
+  
+  K_KZRM_n <- eventReactive(input$cp2,{
+    if(input$TYPE2 == "Square Pattern" && input$BCL2 == 0){
+      
+      1*(( 2.2  - (14*(input$B2/input$d2)))*(sqrt((1/2)+(input$S2/(2*input$B2))))*
+           (1-(input$W2/input$B2))*(abs((input$CL2)/input$CL2)+0.1)^(0.1)*(input$CL2/input$BH2))    
+      
+    }else if( input$TYPE2 == "Square Pattern" && input$BCL2 > 0){
+      
+      
+      1*(( 2.2  - (14*(input$B2/input$d2)))*(sqrt((1/2)+(input$S2/(2*input$B2))))*
+           (1-(input$W2/input$B2))*(abs((input$BCL2-input$CCL2)/input$CL2)+0.1)^(0.1)*(input$CL2/input$BH2)) 
+      
+      
+    }else if(input$TYPE2 == "Staggered Pattern" && input$BCL2 == 0){
+      
+      1.1*(( 2.2  - (14*(input$B2/input$d2)))*(sqrt((1/2)+(input$S2/(2*input$B2))))*
+             (1-(input$W2/input$B2))*(abs((input$CL2)/input$CL2)+0.1)^(0.1)*(input$CL2/input$BH2))
+      
+    }else {
+      
+      1.1*(( 2.2  - (14*(input$B2/input$d2)))*(sqrt((1/2)+(input$S2/(2*input$B2))))*
+             (1-(input$W2/input$B2))*(abs((input$BCL2-input$CCL2)/input$CL2)+0.1)^(0.1)*(input$CL2/input$BH2))
+      
+    } })
+  
+  
+  K_datain <- reactive({
+    
+    req(input$cd2)
+    ext <- tools::file_ext(input$cd2$name)
+    switch(ext,
+           csv = vroom::vroom(input$cd2$datapath, delim = ",", col_names = TRUE ),
+           validate("Invalid file; Please upload your Size Fraction in  .csv format")
+    )
+  })
+  
+  b_und <-  reactive({ (2*ln(2)*ln( input$insitu / K_KZRM_50()))*K_KZRM_n() })
+  
+  
+  K_datain_loop <- reactive({
+    v_s2 <- numeric(1:length( K_datain()))
+    for (k1 in seq_along(K_datain())){
+      v_s2[k1] <- 100*( 1/(1+(((ln(input$insitu/ K_datain()[k1]))/(ln(input$insitu/K_KZRM_50())))^(b_und()))))
+    }
+    v_s2
+  })
+  
+  K_dat4plot <- reactive({ 
+    data.frame(K_datain(), K_datain_loop()) 
+    
+  })
+  
+  
+  output$rt2 <- DT::renderDataTable({  
+    DT::datatable(K_dat4plot(), colnames = c('Size Fraction[cm]' = 2, 'Percentage Passing[%]' = 3 )) 
+    
+  })
+  
+  K_datTag <- reactive({
+    K_KZRM_X_C  <- ((K_KZRM_50()/100))/((0.693)^(1/K_KZRM_n()) )
+    K_P_over_size <- 100*(exp(-((input$OVRS2 / K_KZRM_X_C)^(K_KZRM_n()))))
+    K_P_Under_size <- 100*(1-exp(-((input$UNDS2 / K_KZRM_X_C)^(K_KZRM_n()))))
+    K_P_Range <-  100-K_P_over_size - K_P_Under_size
+    data.frame(K_P_over_size,K_P_Under_size, K_P_Range,K_KZRM_50(), K_KZRM_n(),PF2(), RF2(),HF2(), b_und() )
+    
+  })
+  
+  output$TGS2 <-DT::renderDataTable(
+    DT::datatable( K_datTag() ,
+                   colnames = c('Percentage Oversize [%]' = 2, 
+                                'Percentage UnderSize [%]' = 3,
+                                'Percentage Optimum [%]' = 4,
+                                'Mean Fragment Size [cm]' = 5,
+                                'Uniformity index' = 6,
+                                'Powder Factor' = 7,
+                                'Rock Factor' = 8,
+                                'Hardness Factor' = 9,
+                                'Curve Undulation Parameter (b)' = 10
+                                
+                   ))) 
+  
+  
+  KCO_SINGLE <-  function(){
+    
+                    K1_dat4plot <-  K_dat4plot()
+                   colnames(K1_dat4plot) <- c("Size", "Percentage.Passing")
+    
+    
+    
+                   ggplotly(ggplot(data = K1_dat4plot, aes(x = Size,  y = Percentage.Passing))+
+                   geom_line(colour = "black")+geom_point(colour = "black")+ 
+                   labs(x = "Size Fraction[cm]",y = "Percentage Passing[%]")
+             
+                    )
+    
+                    }
+  
+  
+  output$ft2 <- renderPlotly({ 
+    
+                  KCO_SINGLE()
+                     
+                      })
+  
+  
+  
+  
+  K_KZRM_X_C  <-    reactive(((K_KZRM_50()/100))/((0.693)^(1/K_KZRM_n()) ))
+  K_P_over_size <-  reactive({100*(exp(-((input$OVRS2 / K_KZRM_X_C())^(K_KZRM_n()))))})
+  K_P_Under_size <- reactive({100*(1-exp(-((input$UNDS2 / K_KZRM_X_C())^(K_KZRM_n()))))})
+  
+  K_P_Range <-      reactive({100-K_P_over_size() - K_P_Under_size()})
+  
+  
+  KCO_gaugeOV2 <-  function(){
+           gauge( round(K_P_over_size(),1), 
+           min = 0, 
+           max = 10, 
+           symbol = '%',
+           sectors = gaugeSectors(success = c(0, 5), 
+                                  warning = c(0, 10),
+                                  danger = c(9, 10)))
+    
+    
+  }
+  
+  
+  output$gaugeOV2 <- renderGauge({ 
+    
+                    KCO_gaugeOV2()
+    
+                    })
+  
+  
+  
+  KCO_gaugeOP2 <-  function(){
+    
+          gauge(round(K_P_Range(),1), 
+          min = 70, 
+          max = 100, 
+          symbol = '%',
+          sectors = gaugeSectors(success = c(80, 100), 
+                                 warning = c(70, 79),
+                                 danger = c(30, 50)))
+    
+    
+    
+                     }
+  
+  
+  output$gaugeOP2 <- renderGauge({
+    
+                    KCO_gaugeOP2()
+    
+                      })
+  
+  
+  KCO_gaugeUN2  <- function() {
+    
+          gauge( round(K_P_Under_size(),1), 
+           min = 0, 
+           max = 15, 
+           symbol = '%',
+           sectors = gaugeSectors(success = c(9, 10), 
+                                  warning = c(8, 9),
+                                  danger = c(10, 15)))
+    
+                      }
+  
+  
+  output$gaugeUN2 <- renderGauge({ 
+    
+                    KCO_gaugeUN2()
+        
+                    })
+  
+  
+   pts1 <-  eventReactive(input$recalc, { 
+                                cbind(input$LONG, input$LAT)
+     
+                                })
+   
+   
+   MINE_MAP <-  function ( ){
+     
+        leaflet(options = leafletOptions(
+       attributionControl=FALSE,
+       zoomControl = FALSE)) %>%
+       setView(input$LONG, input$LAT ,16) %>%
+       addTiles() %>%
+       addProviderTiles("Esri.WorldImagery") %>%
+       addMarkers(data = pts1(),
+                  label = as.character(input$BLOC),
+                  labelOptions = labelOptions(noHide = T, textsize = "15px",
+                                              direction = "topcenter"))
+      
+   }
+   
+   
+   
+   
+   
+  output$map <-  leaflet::renderLeaflet( { 
+    
+                           MINE_MAP()
+   
+                            })
+  
+  
+  #GAUGE INSIGHT ALL3
+  
+  
+  
+  output$gaugeOVI <- renderGauge({ 
+    gauge( round(K_P_over_size(),1), 
+           min = 0, 
+           max = 10, 
+           symbol = '%',
+           sectors = gaugeSectors(success = c(0, 5), 
+                                  warning = c(0, 10),
+                                  danger = c(9, 10)))
+    
+  })
+  
+  
+  output$gaugeOPI<- renderGauge({ 
+    gauge(round(K_P_Range(),1), 
+          min = 70, 
+          max = 100, 
+          symbol = '%',
+          sectors = gaugeSectors(success = c(80, 100), 
+                                 warning = c(70, 79),
+                                 danger = c(30, 50)))
+    
+  })
+  
+  output$gaugeUNI <- renderGauge({ 
+    gauge( round(K_P_Under_size(),1), 
+           min = 0, 
+           max = 15, 
+           symbol = '%',
+           sectors = gaugeSectors(success = c(9, 10), 
+                                  warning = c(8, 9),
+                                  danger = c(10, 15)))
+  })
+  
+  output$gaugeOVII <- renderGauge({ 
+    gauge( round(M_P_over_size(),1), 
+           min = 0, 
+           max = 10, 
+           symbol = '%',
+           sectors = gaugeSectors(success = c(0, 5), 
+                                  warning = c(0, 10),
+                                  danger = c(9, 10)))
+    
+  })
+  
+  
+  output$gaugeOPII <- renderGauge({ 
+    gauge(round(M_P_Range(),1), 
+          min = 70, 
+          max = 100, 
+          symbol = '%',
+          sectors = gaugeSectors(success = c(80, 100), 
+                                 warning = c(70, 79),
+                                 danger = c(30, 50)))
+    
+  })
+  
+  output$gaugeUNII <- renderGauge({ 
+    gauge( round(M_P_Under_size(),1), 
+           min = 0, 
+           max = 15, 
+           symbol = '%',
+           sectors = gaugeSectors(success = c(9, 10), 
+                                  warning = c(8, 9),
+                                  danger = c(10, 15)))
+    
+  })
+  
+  
+  
+  output$gaugeOVIII <- renderGauge({ 
+    
+    gauge( round(P_over_size(),1), 
+           min = 0, 
+           max = 10, 
+           symbol = '%',
+           sectors = gaugeSectors(success = c(0, 5), 
+                                  warning = c(0, 10),
+                                  danger = c(9, 10)))
+    
+  })
+  
+  
+  output$gaugeOPIII <- renderGauge({ 
+    
+    gauge(round(P_Range(),1), 
+          min = 70, 
+          max = 100, 
+          symbol = '%',
+          sectors = gaugeSectors(success = c(80, 100), 
+                                 warning = c(70, 79),
+                                 danger = c(30, 50)))
+    
+  })
+  
+  output$gaugeUNIII <- renderGauge({ 
+    
+    gauge( round(P_Under_size(),1), 
+           min = 0, 
+           max = 15, 
+           symbol = '%',
+           sectors = gaugeSectors(success = c(9, 10), 
+                                  warning = c(8, 9),
+                                  danger = c(10, 15)))
+    
+  })
+  
+  #PLOT INSGHT
+  
+  output$KCOI <- renderPlotly({ 
+    
+                K1_dat4plot <-  K_dat4plot()
+                colnames(K1_dat4plot) <- c("Size", "Percentage.Passing")
+    
+    
+           ggplotly(ggplot(data = K1_dat4plot, aes(x = Size, 
+                                             y = Percentage.Passing) ) + geom_line(colour = "black ") +
+                      geom_point(colour = "black ")+ 
+                     labs(x = "Size Fraction[cm]",y = "Percentage Passing[%]")+
+                      geom_text(aes(x = 200, y = 75,
+                                    label = "KCO "),
+                                stat = "unique",family = "Roboto Condensed",
+                                size = 5, color = "black")
+                )
+                      })
+  
+  
+  output$MKMI <- renderPlotly({ 
+    
+    
+                      M1_dat4plot <- M_dat4plot()
+                      colnames( M1_dat4plot ) <- c("Size", "Percentage.Passing")
+    
+    ggplotly( ggplot(data = M1_dat4plot, aes(x = Size, y = Percentage.Passing ))+
+                geom_line(colour = " blue ")+geom_point( colour = " blue ")+ labs(x = "Size Fraction[cm]",y = "Percentage Passing[%]" )+
+                geom_text(aes(x = 200, y = 75,
+                              label = "Modified KuzRam "),
+                          stat = "unique",family = "Roboto Condensed",
+                          size = 5, color = "blue")
+                 )
+    
+         })
+  
+  
+  output$KMI <- renderPlotly({ 
+                        dat4plot1 <-  dat4plot()
+                        colnames(dat4plot1) <- c("Size", "Percentage.Passing")
+    
+    ggplotly(ggplot(data = dat4plot1 , aes(x = Size, 
+                                           y = Percentage.Passing))+ geom_line( colour = "red")+geom_point(colour = "red") + 
+               labs(x = "Size Fraction[cm]",y = "Percentage Passing[%]")+
+               geom_text(aes(x = 200, y = 75,
+                             label = "KuzRam "),
+                         stat = "unique", family = "Roboto Condensed",
+                         size = 5, color = "red")
+              )
+  })
+  
+  
+  
+  
+  #tables3F <-  reactive( data.frame( datain(), M_datain_loop(), K_datain_loop(), datain_loop()) )
+  
+  
+  All_Table_2GEDA <- function( ){
+    
+                        data.frame( datain(),datain_loop(), M_datain_loop(), K_datain_loop())
+
+    
+    
+                         }
+  
+  output$tables3 <-  renderDataTable( All_Table_2GEDA(),
+    colnames = c( 'Size(cm)' = 2,
+                  'KuzRam(%)' = 3,
+                  'Modified KuzRam(%)' = 4,
+                  'KCO(%)' = 5
+                  )
+    
+                    )
+ 
+  
+  
+  Model_All_Plot <- function(){
+    
+       M1_dat4plot <- M_dat4plot()
+      colnames( M1_dat4plot ) <- c("Size", "Percentage.Passing")
+    
+    dat4plot1 <-  dat4plot()
+    colnames(dat4plot1) <- c("Size", "Percentage.Passing")
+    
+    K1_dat4plot <-  K_dat4plot()
+    colnames(K1_dat4plot) <- c("Size", "Percentage.Passing")
+    
+    
+    
+    
+    ggplotly( 
+      
+      ggplot() +
+        
+        geom_line(data = M1_dat4plot, aes(x = Size, y = Percentage.Passing, color = "Modified KuzRam"
+        ))+
+        
+        geom_line(data = dat4plot1, aes(x = Size ,  y = Percentage.Passing, color = "KuzRam"
+        ) )+
+        
+        geom_line(data = K1_dat4plot, aes(x = Size,  y = Percentage.Passing, color = "KCO"
+        ) ) +
+        
+        scale_color_manual(name = "Models",
+                           breaks=c("Modified KuzRam", "KuzRam", "KCO"),
+                           values=c("Modified KuzRam" = "blue" , "KuzRam" = "red", "KCO" = "black" ))+
+        theme(legend.title=element_text(size= 15),
+              legend.text=element_text(size= 10))+labs(x = "Size Fraction[cm]",y = "Percentage Passing[%]")
+      
+      
+      
+    )
+    
+    
+    
+    
+  }
+  
+  
+  output$plots3 <-  renderPlotly({
+    
+                      Model_All_Plot()
+                      
+                    })
+  
+  
+  
+  TOTALCOST_BLAST <- function(){
+    
+                (input$NUMBEROFHOLES * input$COSTDRILL) + ( input$NUMBEROFHOLES * input$COSTEXP )
+    
+    
+                   }  
+    
+                    
+    
+ 
+    
+  
+  
+  
+  ParaT <- function(){
+    
+    
+    tibble::tribble(
+      
+      ~Parameter,                       ~Value,
+      
+      
+      "Total Volume Blasted[bcm]",      round(vb2(),3),
+      "Burden[m]",                      round(input$B,3),
+      "Spacing[m]",                     round(input$S,3),
+      "Hole Diameter[mm]",              round(input$d,3),
+      "Number of Holes",                round(input$NUMBEROFHOLES,3),
+      "Bench Height[m]",                round(input$BH,3),
+      "Charge Length[m]",               round(input$CL,3),
+      "Bottom Charge Length[m]",        round(input$BCL,3),
+      "Column Charge Length[m]",        round(input$CCL,3),
+      "Cost of Explosive Per Hole[$]" , round(input$COSTEXP,3),
+      "Cost Per Drill Hole[$]" ,        round(input$COSTDRILL,3),
+      "Total Cost of Blast[$]",         round(TOTALCOST_BLAST(),3)
+     
+    )
+    
+  }
+  
+  
+  output$PARA <-  renderDataTable({
+    
+                         ParaT()
+    
+    
+                            })
+  
+  
+  
+  Commentt <- function(){
+                         input$COMMENT
+                          }
+  
+  
+  output$COMMENT <-  renderText({ Commentt() })
+  
+  
+  BLASTDESIGN <- function(){ 
+                        input$TYPE 
+                            }
+  
+  
+  
+  frag <- function(){ 
+    
+    tibble::tribble(
+    
+    ~ Prediction,             ~ KuzRam,                ~ Modified.KuzRam,        ~ KCO,
+    
+    "Mean Size[cm]",           round(KZRM_50(),3),   round(M_KZRM_50(), 3 ),   round(K_KZRM_50(),3),
+    "Percentage Oversize[%]",  round(datTag()[,1],3),round(M_datTag()[,1],3),  round(K_datTag()[,1],3),
+    "Percentage Optimum[%]",   round(datTag()[,3],3),round(M_datTag()[,3],3),  round(K_datTag()[,3],3),
+    "Percentage Undersize[%]", round(datTag()[,2],3),round(M_datTag()[,2],3),  round(K_datTag()[,2],3),
+    "Powder Factor",           round(PF(),3),        round(PF1(),3),           round(PF2(),3),
+    "Rock Factor",             round(RF(),3),        round(RF1(),3),           round(RF2(),3),
+    "Uniformity Index",        round(KZRM_n(),3),    round(M_KZRM_n(),3),      round(KZRM_n(),3),
+    
+  )}
+  
+    
+  output$FRAG <- renderDataTable({ frag() })
+  
+  
+  
+  
+  ##Waiter Below
+  observeEvent(input$cp2, {
+    waiter_show(html = waiting_screen, color = "black")
+    Sys.sleep(3) # do something that takes time
+    waiter_hide()
+  })
+  
+  observeEvent(input$cpt, {
+    waiter_show(html = waiting_screen, color = "black")
+    Sys.sleep(3) # do something that takes time
+    waiter_hide()
+  })
+  
+  observeEvent(input$cp, {
+              waiter_show(html = waiting_screen, color = "black")
+              Sys.sleep(3) # do something that takes time
+              waiter_hide()
+              })
+  
+  
+  output$downloadReport <- downloadHandler(
+      # For PDF output, change this to "report.pdf"
+      filename = "report.pdf",
+      content = function(file) {
+        # Copy the report file to a temporary directory before processing it, in
+        # case we don't have write permissions to the current working dir (which
+        # can happen when deployed).
+        tempReport <- file.path(tempdir(), "report.Rmd")
+        file.copy("report.Rmd", tempReport, overwrite = TRUE)
+        
+        # Set up parameters to pass to Rmd document
+        params = list(
+          MINE_MAP = MINE_MAP,
+          Model_All_Plot= Model_All_Plot
+          
+        )
+        
+        # Knit the document, passing in the `params` list, and eval it in a
+        # child of the global environment (this isolates the code in the document
+        # from the code in this app).
+        rmarkdown::render(tempReport, output_file = file,
+                          params = params,
+                          envir = new.env(parent = globalenv())
+        )
+      }
+    )
+```

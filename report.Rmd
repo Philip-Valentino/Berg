@@ -1,0 +1,88 @@
+---
+title: "Blast Report"
+author: "Name of Mining Engineer: `r input$NM`"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  pdf_document:
+      fig_width: 12
+      fig_height: 10
+header-includes:
+   - \usepackage{subfig}
+   - \usepackage{booktabs}
+   - \usepackage{longtable}
+   - \usepackage{array}
+   - \usepackage{multirow}
+   - \usepackage{wrapfig}
+   - \usepackage{float}
+   - \usepackage{colortbl}
+   - \usepackage{pdflscape}
+   - \usepackage{tabu}
+   - \usepackage{threeparttable}
+   - \usepackage{threeparttablex}
+   - \usepackage[normalem]{ulem}
+   - \usepackage{makecell}
+   - \usepackage{xcolor}
+params:
+  MINE_MAP: NULL
+  Model_All_Plot: NULL
+---
+
+
+\centering
+**Type of Shift:** `r input$SHIFT`
+
+
+\centering
+**Type of Blast Design:** `r input$TYPE`
+
+\centering
+**Explosives and Accessories Provider:** `r input$PROVIDER`
+
+\centering
+**Comments:**  `r input$COMMENT`
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+
+```{r }
+
+if(!is.null(params$MINE_MAP))
+params$MINE_MAP()
+
+
+
+if(!is.null(params$Model_All_Plot))
+params$Model_All_Plot()
+
+
+```
+
+```{r}
+
+  kbl(All_Table_2GEDA(), booktabs = T, caption = "Cummulative Size Distribution From Models",
+     col.names = c( 'Size(cm)' ,
+                   'KuzRam(%)' ,
+                   'Modified KuzRam(%)' ,
+                   'KCO(%)' ) ) %>%
+    kable_styling(full_width = T) 
+  
+   
+    kbl(frag(),booktabs = T) %>%
+       kable_styling(full_width = T) 
+    
+
+   kbl(ParaT(),booktabs = T,
+       format.args = list(scientific = FALSE)) %>%
+      kable_styling(full_width = T) %>%
+   pack_rows("COST", 10, 11, latex_gap_space = "2em")%>%
+   add_header_above("Blast Design Parameters and Cost",  bold = T, italic = T)
+
+
+```
+
+
+
